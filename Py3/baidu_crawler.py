@@ -112,6 +112,7 @@ def extract_all_text(keyword_dict, keyword_text, ip_factory):
 def main():
     # 抓取搜索关键词
     keyword_dict = 'data/samples.txt'
+    
     # 抓取存取结果
     keyword_text = 'data/results.txt'
 
