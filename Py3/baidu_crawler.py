@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*-
+# coding:utf-8
 import requests
 from lxml import etree
 import random
@@ -111,10 +111,10 @@ def extract_all_text(keyword_dict, keyword_text, ip_factory):
 
 def main():
     # 抓取搜索关键词
-    keyword_dict = 'data/samples.txt'
+    keyword_dict = 'samples.txt'
     
     # 抓取存取结果
-    keyword_text = 'data/results.txt'
+    keyword_text = 'results.txt'
 
     # 抓取数据
     extract_all_text(keyword_dict, keyword_text, ip_pool.ip_factory)
