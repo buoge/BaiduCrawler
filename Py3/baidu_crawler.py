@@ -3,6 +3,8 @@ import requests
 from lxml import etree
 import random
 import ip_pool
+from bs4 import BeautifulSoup
+import time
 
 
 """
@@ -37,8 +39,8 @@ def html_parser(html):
     解析html
     """
     # 设置提取数据正则
-    path_cn = "//div[@id='content_left']//div[@class='c-abstract']/text()"
-    path_en = "//div[@id='content_left']//div[@class='c-abstract c-abstract-en']/text()"
+    path_cn = "//div[@id='content_left']//h3[@class='t']/text()"
+    path_en = "//div[@id='content_left']//h3[@class='t']/text()"
 
     # 提取数据
     tree = etree.HTML(html)
@@ -46,6 +48,8 @@ def html_parser(html):
     results_en = tree.xpath(path_en)
     text_cn = [line.strip() for line in results_cn]
     text_en = [line.strip() for line in results_en]
+
+    print(text_cn)
 
     # 设置返回结果
     text_str = ''
@@ -98,12 +102,31 @@ def extract_all_text(keyword_dict, keyword_text, ip_factory):
                 proxy = random.choice(useful_proxies.keys())
                 content = download_html(line.strip(), proxy)
 
-            raw_text = html_parser(content)
-            raw_text = raw_text.replace('\n', '||')
-            print (raw_text)
+            # 记录下查询结果
+            ct.write(content)
+
+            soup = BeautifulSoup(content, "lxml")
+
+            #print(soup.prettify())
+
+            # 优化这一步, 提取url
+            find_domlist = soup.find_all("div",class_="c-container")
+
+            link_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0 cb) like Gecko'}
+
+            for link_container in find_domlist:
+                link_a = link_container.find("a")
+                baidu_url_encode = link_a['href']
+
+                #print(baidu_url_encode)
+                baidu_url_decode = requests.get(baidu_url_encode,headers=link_headers)
+                
+                print(baidu_url_decode.url)
+
+                time.sleep(1) # 休眠1秒
 
             # 写入数据到文件
-            ct.write(line.strip()+':\t'+raw_text+'\n')
+            
 
         ct.close()
         cn.close()
