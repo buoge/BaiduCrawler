@@ -16,12 +16,12 @@ import time
 """
 
 
-def download_html(keywords, proxy):
+def download_html(keywords,pindex,proxy):
     """
     抓取网页
     """
     # 抓取参数 https://www.baidu.com/s?wd=testRequest
-    key = {'wd': keywords}
+    key = {'wd': keywords,'pn':pindex,'rn': 50}
 
     # 请求Header
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0 cb) like Gecko'}
@@ -83,53 +83,62 @@ def extract_all_text(keyword_dict, keyword_text, ip_factory):
         print ("获取代理ip时出错！")
 
     cn = open(keyword_dict, 'r',encoding='utf8')
-    with open(keyword_text, 'w',encoding='utf8') as ct:
-        # 逐行读取关键词
-        for line in cn:
-            # 设置随机代理
-            proxy = random.choice(list(useful_proxies.keys()))
-            print ("change proxies: " + proxy)
 
-            content = ''
-            try:
-                content = download_html(line.strip(), proxy)
-            except OSError:
-                # 超过3次则删除此proxy
-                useful_proxies[proxy] += 1
-                if useful_proxies[proxy] > 3:
-                    useful_proxies.remove(proxy)
-                # 再抓一次
-                proxy = random.choice(useful_proxies.keys())
-                content = download_html(line.strip(), proxy)
+    # for i in range(1,6):
+    #     pindex = (i-1)*10;
+    #     print pindex
 
-            # 记录下查询结果
-            ct.write(content)
+    for search_word in cn:    
+        getBaiduUrl(useful_proxies,search_word,10)
+    
+    cn.close()
 
-            soup = BeautifulSoup(content, "lxml")
+def getBaiduUrl(useful_proxies,search_word,pindex):
+    
+    #with open(keyword_text, 'w',encoding='utf8') as ct:
+    
+    # 逐行读取关键词
+        
+    # 设置随机代理
+    proxy = random.choice(list(useful_proxies.keys()))
+    print ("change proxies: " + proxy)
 
-            #print(soup.prettify())
+    # 存储返回的搜索结果内容
+    content = ''
 
-            # 优化这一步, 提取url
-            find_domlist = soup.find_all("div",class_="c-container")
+    # 发送查询并异常处理
+    try:
+        content = download_html(search_word.strip(),pindex, proxy)
+    except OSError:
+        # 超过3次则删除此proxy
+        useful_proxies[proxy] += 1
+        if useful_proxies[proxy] > 3:
+            useful_proxies.remove(proxy)
+        # 再抓一次
+        proxy = random.choice(useful_proxies.keys())
+        content = download_html(search_word.strip(),pindex, proxy)
 
-            link_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0 cb) like Gecko'}
+    # 查询结果使用BeautifulSoup处理
+    soup = BeautifulSoup(content, "lxml")
 
-            for link_container in find_domlist:
-                link_a = link_container.find("a")
-                baidu_url_encode = link_a['href']
+    # 按照规则过滤url,获取百度跳转url
+    find_domlist = soup.find_all("div",class_="c-container")
 
-                #print(baidu_url_encode)
-                baidu_url_decode = requests.get(baidu_url_encode,headers=link_headers)
-                
-                print(baidu_url_decode.url)
+    # 使用百度二次跳转获取源url
+    link_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0 cb) like Gecko'}
+    for link_container in find_domlist:
+        link_a = link_container.find("a")
+        
+        baidu_url_encode = link_a['href']
+        baidu_url_decode = requests.get(baidu_url_encode,headers=link_headers)
+        
+        print(baidu_url_decode.url)
+        
+        # 休眠1秒
+        time.sleep(1) 
 
-                time.sleep(1) # 休眠1秒
-
-            # 写入数据到文件
-            
-
-        ct.close()
-        cn.close()
+    # 写入数据到文件 
+    #ct.close()                   
 
 
 def main():
