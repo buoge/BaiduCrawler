@@ -16,12 +16,12 @@ import time
 """
 
 
-def download_html(keywords,pindex,proxy):
+def download_html(keywords,proxy):
     """
     抓取网页
     """
     # 抓取参数 https://www.baidu.com/s?wd=testRequest
-    key = {'wd': keywords,'pn':pindex,'rn': 50}
+    key = {'wd': keywords,'pn':0,'rn': 50}
 
     # 请求Header
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0 cb) like Gecko'}
@@ -83,21 +83,17 @@ def extract_all_text(keyword_dict, keyword_text, ip_factory):
         print ("获取代理ip时出错！")
 
     cn = open(keyword_dict, 'r',encoding='utf8')
-
-    # for i in range(1,6):
-    #     pindex = (i-1)*10;
-    #     print pindex
-
-    for search_word in cn:    
-        getBaiduUrl(useful_proxies,search_word,10)
-    
+    for search_word in cn:  
+        with open(keyword_text, 'a',encoding='utf8') as ct:  
+            getBaiduUrl(useful_proxies,search_word,ct)
+            ct.close()
     cn.close()
 
-def getBaiduUrl(useful_proxies,search_word,pindex):
-    
-    #with open(keyword_text, 'w',encoding='utf8') as ct:
+def getBaiduUrl(useful_proxies,search_word,ct):
     
     # 逐行读取关键词
+    print(search_word)
+    ct.write(search_word.strip()+':\n')
         
     # 设置随机代理
     proxy = random.choice(list(useful_proxies.keys()))
@@ -108,7 +104,7 @@ def getBaiduUrl(useful_proxies,search_word,pindex):
 
     # 发送查询并异常处理
     try:
-        content = download_html(search_word.strip(),pindex, proxy)
+        content = download_html(search_word.strip(), proxy)
     except OSError:
         # 超过3次则删除此proxy
         useful_proxies[proxy] += 1
@@ -116,7 +112,7 @@ def getBaiduUrl(useful_proxies,search_word,pindex):
             useful_proxies.remove(proxy)
         # 再抓一次
         proxy = random.choice(useful_proxies.keys())
-        content = download_html(search_word.strip(),pindex, proxy)
+        content = download_html(search_word.strip(), proxy)
 
     # 查询结果使用BeautifulSoup处理
     soup = BeautifulSoup(content, "lxml")
@@ -130,15 +126,21 @@ def getBaiduUrl(useful_proxies,search_word,pindex):
         link_a = link_container.find("a")
         
         baidu_url_encode = link_a['href']
-        baidu_url_decode = requests.get(baidu_url_encode,headers=link_headers)
-        
-        print(baidu_url_decode.url)
-        
-        # 休眠1秒
-        time.sleep(1) 
 
-    # 写入数据到文件 
-    #ct.close()                   
+        try:
+            baidu_url_decode = requests.get(baidu_url_encode,headers=link_headers)
+        
+            decode_url = baidu_url_decode.url
+            print(decode_url)
+            ct.write(decode_url+'\n')
+        
+            # 休眠1秒,得考虑下网络慢的情况，我家的网巨差，时间得长些
+            time.sleep(2)
+        except OSError:  
+            print('origin url:'+baidu_url_encode+'deconde error skip....')
+            continue  
+
+                       
 
 
 def main():
